@@ -75,8 +75,7 @@ headOr ::
   a
   -> List a
   -> a
-headOr n Nil = n
-headOr _ (n :. _) = n
+headOr = foldRight (\a _ -> a)
 
 -- | The product of the elements of a list.
 --
@@ -116,8 +115,7 @@ sum = foldLeft (+) 0
 length ::
   List a
   -> Int
-length (Nil) = 0
-length (_ :. xs) = 1 + (length xs)
+length = foldLeft (\acc _ -> acc + 1) 0
 
 -- | Map the given function on each element of the list.
 --
@@ -127,12 +125,13 @@ length (_ :. xs) = 1 + (length xs)
 -- prop> headOr x (map (+1) infinity) == 1
 --
 -- prop> map id x == x
+-- foldRightish f z = a `f` b `f` c `f` z
 map ::
   (a -> b)
   -> List a
   -> List b
-map _ Nil = Nil
-map f (x :. xs) = ((f x) :. (map f xs))
+-- map f = foldRight (\l r -> ((f l) :. r)) Nil
+map f = foldRight ((:.) . f) Nil
 
 -- | Return elements satisfying the given predicate.
 --
@@ -144,14 +143,17 @@ map f (x :. xs) = ((f x) :. (map f xs))
 -- prop> filter (const True) x == x
 --
 -- prop> filter (const False) x == Nil
+
+bool :: a -> a -> Bool -> a
+bool f _ False = f
+bool _ t True = t
+
 filter ::
   (a -> Bool)
   -> List a
   -> List a
-filter _ Nil = (Nil)
-filter f (x :. xs)
-  | f x = (x :. (filter f xs))
-  | otherwise = filter f xs
+--filter f = foldRight (\l r -> if f l then (l :. r) else r) Nil
+filter f = foldRight (\h -> bool id ((:.) h) (f h)) Nil
 
 -- | Append two lists to a new list.
 --
@@ -169,8 +171,8 @@ filter f (x :. xs)
   List a
   -> List a
   -> List a
-(++) Nil ys = ys
-(++) (x :. xs) ys = (x :. ((++) xs ys))
+-- (++) xs ys = foldRight (\l r -> (l :. r)) ys xs
+(++) = flip (foldRight (:.))
 
 infixr 5 ++
 
@@ -187,8 +189,7 @@ infixr 5 ++
 flatten ::
   List (List a)
   -> List a
-flatten Nil = Nil
-flatten (x :. xs) = x ++ (flatten xs)
+flatten = foldRight (++) Nil
 
 -- | Map a function then flatten to a list.
 --
@@ -240,8 +241,10 @@ flattenAgain = flatMap id
 seqOptional ::
   List (Optional a)
   -> Optional (List a)
-seqOptional =
-  error "todo: Course.List#seqOptional"
+seqOptional Nil = Full (Nil)
+seqOptional (Empty :. _) = Empty
+seqOptional _xs = undefined -- Full (mapOptional ?? xs)
+
 
 -- | Find the first element in the list matching the predicate.
 --
