@@ -52,7 +52,7 @@ infinity =
 -- functions over List that you may consider using
 foldRight :: (a -> b -> b) -> b -> List a -> b
 foldRight _ b Nil      = b
-foldRight f b (h :. t) = f h (foldRight f b t)
+foldRight f b (h :. t) = h `f` (foldRight f b t)
 
 foldLeft :: (b -> a -> b) -> b -> List a -> b
 foldLeft _ b Nil      = b
@@ -238,13 +238,22 @@ flattenAgain = flatMap id
 --
 -- >>> seqOptional (Empty :. map Full infinity)
 -- Empty
+
 seqOptional ::
   List (Optional a)
   -> Optional (List a)
-seqOptional Nil = Full (Nil)
-seqOptional (Empty :. _) = Empty
-seqOptional _xs = undefined -- Full (mapOptional ?? xs)
+seqOptional Nil = Full Nil
+-- seqOptional (h :. t) = bindOptional (\a -> mapOptional (a:.) (seqOptional t)) h
+seqOptional (h :. t) = bindOptional (\a -> bindOptional (\q -> Full (a:.q)) (seqOptional t)) h
 
+{-
+seqOptional Nil = Full Nil
+seqOptional (Empty :. xs) = Empty
+seqOptional xs = foldLeft (\acc l -> if (isEmpty l) || (isEmpty acc) then Empty else Full (j acc l)) (Full Nil) xs -- (mapOptional (\a -> (a :. Nil)) x :. (seqOptional xs)) -- foldRight undefined (Full Nil)
+  where isEmpty Empty = True
+        isEmpty _ = False
+        j (Full ac) (Full a) = (a :. ac)
+-}
 
 -- | Find the first element in the list matching the predicate.
 --
@@ -266,8 +275,9 @@ find ::
   (a -> Bool)
   -> List a
   -> Optional a
-find =
-  error "todo: Course.List#find"
+-- find f = foldRight (\v acc -> bool acc (Full v) (f v)) Empty
+find f = foldRight (const . Full) Empty . filter f
+-- find f = headOr Empty . map Full . filter f
 
 -- | Determine if the length of the given list is greater than 4.
 --
@@ -285,8 +295,11 @@ find =
 lengthGT4 ::
   List a
   -> Bool
-lengthGT4 =
-  error "todo: Course.List#lengthGT4"
+-- lengthGT4 = (>4) . length
+lengthGT4 = lengthGT4' 0
+
+lengthGT4' _ Nil = False
+lengthGT4' n (_ :. xs) = if n > 4 then True else (lengthGT4' (n + 1) xs)
 
 -- | Reverse a list.
 --
@@ -302,8 +315,8 @@ lengthGT4 =
 reverse ::
   List a
   -> List a
-reverse =
-  error "todo: Course.List#reverse"
+-- reverse = foldLeft (\acc v -> (v :. acc)) Nil
+reverse = foldLeft (flip (:.)) Nil
 
 -- | Produce an infinite `List` that seeds with the given value at its head,
 -- then runs the given function for subsequent elements
@@ -331,8 +344,7 @@ produce f x = x :. produce f (f x)
 notReverse ::
   List a
   -> List a
-notReverse =
-  error "todo: Is it even possible?"
+notReverse = foldLeft (flip (:.)) Nil
 
 ---- End of list exercises
 
