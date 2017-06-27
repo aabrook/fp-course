@@ -69,6 +69,7 @@ instance Functor ParseResult where
   f <$> Result i a =
     Result i (f a)
 
+
 -- | Produces a parser that always fails with @UnexpectedChar@ using the given character.
 unexpectedCharParser ::
   Char
@@ -216,7 +217,8 @@ flbindParser =
   -> Parser a
 (|||) a b =
   P (\i -> case parse a i of (ErrorResult _) -> parse b i
-                             Result j k -> Result j k)
+                             -- r@Result {} -> r)
+                             r@(Result _ _) -> r)
 
 infixl 3 |||
 
@@ -244,8 +246,8 @@ infixl 3 |||
 list ::
   Parser a
   -> Parser (List a)
-list =
-  error "todo: Course.Parser#list"
+list p =
+  list1 p ||| valueParser Nil
 
 -- | Return a parser that produces at least one value from the given parser then
 -- continues producing a list of values from the given parser (to ultimately produce a non-empty list).
@@ -263,9 +265,17 @@ list =
 list1 ::
   Parser a
   -> Parser (List a)
-list1 =
-  error "todo: Course.Parser#list1"
-
+list1 p =
+  do
+    x <- p
+    y <- list p
+    pure (x :. y)
+    {--
+  p >>= (\x ->
+    list p >>= (\y ->
+      valueParser (x :. y)
+  ))
+    --}
 -- | Return a parser that produces a character but fails if
 --
 --   * The input is empty.
@@ -595,17 +605,12 @@ personParser =
   error "todo: Course.Parser#personParser"
 
 -- Make sure all the tests pass!
-
-
--- | Write a Functor instance for a @Parser@.
--- /Tip:/ Use @bindParser@ and @valueParser@.
 instance Functor Parser where
   (<$>) ::
     (a -> b)
     -> Parser a
     -> Parser b
-  (<$>) =
-     error "todo: Course.Parser (<$>)#instance Parser"
+  (<$>) = mapParser
 
 -- | Write an Applicative functor instance for a @Parser@.
 -- /Tip:/ Use @bindParser@ and @valueParser@.
@@ -614,13 +619,13 @@ instance Applicative Parser where
     a
     -> Parser a
   pure =
-    error "todo: Course.Parser pure#instance Parser"
+    valueParser
   (<*>) ::
     Parser (a -> b)
     -> Parser a
     -> Parser b
-  (<*>) =
-    error "todo: Course.Parser (<*>)#instance Parser"
+  (<*>) f a =
+    flbindParser f (`mapParser` a)
 
 -- | Write a Monad instance for a @Parser@.
 instance Monad Parser where
@@ -629,4 +634,4 @@ instance Monad Parser where
     -> Parser a
     -> Parser b
   (=<<) =
-    error "todo: Course.Parser (=<<)#instance Parser"
+    bindParser
