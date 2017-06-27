@@ -63,6 +63,12 @@ data Parser a = P {
   parse :: Input -> ParseResult a
 }
 
+instance Functor ParseResult where
+  _ <$> ErrorResult e =
+    ErrorResult e
+  f <$> Result i a =
+    Result i (f a)
+
 -- | Produces a parser that always fails with @UnexpectedChar@ using the given character.
 unexpectedCharParser ::
   Char
@@ -77,8 +83,8 @@ unexpectedCharParser c =
 valueParser ::
   a
   -> Parser a
-valueParser =
-  error "todo: Course.Parser#valueParser"
+-- valueParser = \a -> P (\i -> Result i a)
+valueParser = P . flip Result
 
 -- | Return a parser that always fails with the given error.
 --
@@ -86,8 +92,7 @@ valueParser =
 -- True
 failed ::
   Parser a
-failed =
-  error "todo: Course.Parser#failed"
+failed = P (const (ErrorResult Failed))
 
 -- | Return a parser that succeeds with a character off the input or fails with an error if the input is empty.
 --
@@ -98,8 +103,13 @@ failed =
 -- True
 character ::
   Parser Char
-character =
-  error "todo: Course.Parser#character"
+  {-
+character = P getChar -- (\(h :. t) -> Result t h)
+  where getChar (h:.t) = Result t h
+        getChar Nil = ErrorResult UnexpectedEof
+  -}
+character = P (\i -> case i of Nil -> ErrorResult UnexpectedEof
+                               (h:.t) -> Result t h)
 
 -- | Return a parser that maps any succeeding result with the given function.
 --
@@ -112,8 +122,8 @@ mapParser ::
   (a -> b)
   -> Parser a
   -> Parser b
-mapParser =
-  error "todo: Course.Parser#mapParser"
+mapParser f a =
+  P (\i -> f <$> parse a i)
 
 -- | This is @mapParser@ with the arguments flipped.
 -- It might be more helpful to use this function if you prefer this argument order.
@@ -149,8 +159,9 @@ bindParser ::
   (a -> Parser b)
   -> Parser a
   -> Parser b
-bindParser =
-  error "todo: Course.Parser#bindParser"
+bindParser k p =
+  P (\i -> case parse p i of ErrorResult e -> ErrorResult e
+                             Result j a -> parse (k a) j)
 
 -- | This is @bindParser@ with the arguments flipped.
 -- It might be more helpful to use this function if you prefer this argument order.
@@ -179,8 +190,8 @@ flbindParser =
   Parser a
   -> Parser b
   -> Parser b
-(>>>) =
-  error "todo: Course.Parser#(>>>)"
+(>>>) pa pb =
+  bindParser (const pb) pa
 
 -- | Return a parser that tries the first parser for a successful value.
 --
@@ -203,8 +214,9 @@ flbindParser =
   Parser a
   -> Parser a
   -> Parser a
-(|||) =
-  error "todo: Course.Parser#(|||)"
+(|||) a b =
+  P (\i -> case parse a i of (ErrorResult _) -> parse b i
+                             Result j k -> Result j k)
 
 infixl 3 |||
 
