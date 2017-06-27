@@ -242,9 +242,10 @@ flattenAgain = flatMap id
 seqOptional ::
   List (Optional a)
   -> Optional (List a)
-seqOptional Nil = Full Nil
+-- seqOptional Nil = Full Nil
 -- seqOptional (h :. t) = bindOptional (\a -> mapOptional (a:.) (seqOptional t)) h
-seqOptional (h :. t) = bindOptional (\a -> bindOptional (\q -> Full (a:.q)) (seqOptional t)) h
+-- seqOptional (h :. t) = bindOptional (\a -> bindOptional (\q -> Full (a:.q)) (seqOptional t)) h
+seqOptional = foldRight (twiceOptional (:.)) (Full Nil)
 
 {-
 seqOptional Nil = Full Nil
