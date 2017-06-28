@@ -10,6 +10,7 @@ import Course.Applicative
 import Course.Monad
 import Course.Functor
 import Course.List
+import Course.Optional
 
 {-
 
@@ -74,8 +75,8 @@ the contents of c
 main ::
   IO ()
 main =
-  run "share/files.txt"
-
+  do
+    run "share/files.txt"
 type FilePath =
   Chars
 
@@ -83,11 +84,20 @@ type FilePath =
 run ::
   FilePath
   -> IO ()
-run start =
+run =
+  (printFiles =<<) . (getFiles . lines . snd =<<) . getFile
+-- printFiles =<< (getFiles . lines . snd) =<< getFile start
+{-
+  getFile start >>=
+    (getFiles . lines . snd) >>=
+    printFiles
+-}
+{-
   do
     (_name, f) <- getFile start
     files <- getFiles (lines f)
     printFiles files
+-}
 
 getFiles ::
   List FilePath
@@ -98,16 +108,20 @@ getFiles =
 getFile ::
   FilePath
   -> IO (FilePath, Chars)
-getFile name =
+getFile =
+  lift2 (<$>) (,) readFile
+-- (\c -> (name, c)) <$> readFile name
+{-
   do
     f <- readFile name
     pure (name, f)
-
+-}
 printFiles ::
   List (FilePath, Chars)
   -> IO ()
 printFiles =
-  traverse_ (\(a, b) -> printFile a b)
+  traverse_ (uncurry printFile)
+-- traverse_ (\(a, b) -> printFile a b)
 -- void $ sequence ((\(a, b) -> printFile a b) <$> files)
 
 printFile ::
