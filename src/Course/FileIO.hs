@@ -52,7 +52,7 @@ To test this module, load ghci in the root of the project directory, and do
 Example output:
 
 $ ghci
-GHCi, version ... 
+GHCi, version ...
 Loading package...
 Loading ...
 [ 1 of 28] Compiling (etc...
@@ -74,7 +74,7 @@ the contents of c
 main ::
   IO ()
 main =
-  error "todo: Course.FileIO#main"
+  run "share/files.txt"
 
 type FilePath =
   Chars
@@ -83,31 +83,39 @@ type FilePath =
 run ::
   FilePath
   -> IO ()
-run =
-  error "todo: Course.FileIO#run"
+run start =
+  do
+    (_name, f) <- getFile start
+    files <- getFiles (lines f)
+    printFiles files
 
 getFiles ::
   List FilePath
   -> IO (List (FilePath, Chars))
 getFiles =
-  error "todo: Course.FileIO#getFiles"
+  sequence . (getFile <$>)
 
 getFile ::
   FilePath
   -> IO (FilePath, Chars)
-getFile =
-  error "todo: Course.FileIO#getFile"
+getFile name =
+  do
+    f <- readFile name
+    pure (name, f)
 
 printFiles ::
   List (FilePath, Chars)
   -> IO ()
 printFiles =
-  error "todo: Course.FileIO#printFiles"
+  traverse_ (\(a, b) -> printFile a b)
+-- void $ sequence ((\(a, b) -> printFile a b) <$> files)
 
 printFile ::
   FilePath
   -> Chars
   -> IO ()
-printFile =
-  error "todo: Course.FileIO#printFile"
+printFile name contents =
+  traverse_ putStrLn (name :. contents :. Nil)
 
+traverse_ :: Applicative f => (a -> f b) -> List a -> f ()
+traverse_ f = void . sequence . (<$>) f
