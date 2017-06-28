@@ -39,7 +39,7 @@ P p <.> i =
 spaces ::
   Parser Chars
 spaces =
-  error "todo: Course.MoreParser#spaces"
+  list space
 
 -- | Write a function that applies the given parser, then parses 0 or more spaces,
 -- then produces the result of the original parser.
@@ -54,8 +54,11 @@ spaces =
 tok ::
   Parser a
   -> Parser a
-tok =
-  error "todo: Course.MoreParser#tok"
+tok a =
+  do
+    p <- a
+    spaces
+    pure p
 
 -- | Write a function that parses the given char followed by 0 or more spaces.
 --
@@ -64,13 +67,13 @@ tok =
 --
 -- >>> isErrorResult (parse (charTok 'a') "dabc")
 -- True
--- 
+--
 -- /Tip:/ Use `tok` and `is`.
 charTok ::
   Char
   -> Parser Char
-charTok =
-  error "todo: Course.MoreParser#charTok"
+charTok c =
+  tok (is c)
 
 -- | Write a parser that parses a comma ',' followed by 0 or more spaces.
 --
@@ -79,12 +82,12 @@ charTok =
 --
 -- >>> isErrorResult( parse commaTok "1,23")
 -- True
--- 
+--
 -- /Tip:/ Use `charTok`.
 commaTok ::
   Parser Char
 commaTok =
-  error "todo: Course.MoreParser#commaTok"
+  charTok ','
 
 -- | Write a parser that parses either a double-quote or a single-quote.
 --
@@ -101,7 +104,7 @@ commaTok =
 quote ::
   Parser Char
 quote =
-  error "todo: Course.MoreParser#quote"
+  charTok '\'' ||| charTok '"'
 
 -- | Write a function that parses the given string (fails otherwise).
 --
@@ -116,7 +119,9 @@ string ::
   Chars
   -> Parser Chars
 string =
-  error "todo: Course.MoreParser#is"
+  error "todo: Course.MoreParser#string"
+
+-- traverse :: (Traversable t, Applicative f) => (a -> f b) -> t a -> f (t b)
 
 -- | Write a function that parsers the given string, followed by 0 or more spaces.
 --
